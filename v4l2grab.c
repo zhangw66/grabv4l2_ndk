@@ -56,12 +56,12 @@
 #include <asm/types.h>
 #include <linux/videodev2.h>
 #include <jpeglib.h>
-#include <libv4l2.h>
+//#include <libv4l2.h>
 #include <signal.h>
 #include <stdint.h>
 #include <inttypes.h>
 
-#include "config.h"
+//#include "config.h"
 #include "yuv.h"
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
@@ -152,7 +152,7 @@ static int xioctl(int fd, int request, void* argp)
 {
 	int r;
 
-	do r = v4l2_ioctl(fd, request, argp);
+	do r = ioctl(fd, request, argp);
 	while (-1 == r && EINTR == errno);
 
 	return r;
@@ -250,7 +250,7 @@ static int frameRead(void)
 	switch (io) {
 #ifdef IO_READ
 		case IO_METHOD_READ:
-			if (-1 == v4l2_read(fd, buffers[0].start, buffers[0].length)) {
+			if (-1 == read(fd, buffers[0].start, buffers[0].length)) {
 				switch (errno) {
 					case EAGAIN:
 						return 0;
@@ -506,7 +506,7 @@ static void deviceUninit(void)
 #ifdef IO_MMAP
 		case IO_METHOD_MMAP:
 			for (i = 0; i < n_buffers; ++i)
-				if (-1 == v4l2_munmap(buffers[i].start, buffers[i].length))
+				if (-1 == munmap(buffers[i].start, buffers[i].length))
 					errno_exit("munmap");
 			break;
 #endif
@@ -587,7 +587,7 @@ static void mmapInit(void)
 			errno_exit("VIDIOC_QUERYBUF");
 
 		buffers[n_buffers].length = buf.length;
-		buffers[n_buffers].start = v4l2_mmap(NULL /* start anywhere */, buf.length, PROT_READ | PROT_WRITE /* required */, MAP_SHARED /* recommended */, fd, buf.m.offset);
+		buffers[n_buffers].start = mmap(NULL /* start anywhere */, buf.length, PROT_READ | PROT_WRITE /* required */, MAP_SHARED /* recommended */, fd, buf.m.offset);
 
 		if (MAP_FAILED == buffers[n_buffers].start)
 			errno_exit("mmap");
@@ -787,7 +787,7 @@ static void deviceInit(void)
 */
 static void deviceClose(void)
 {
-	if (-1 == v4l2_close(fd))
+	if (-1 == close(fd))
 		errno_exit("close");
 
 	fd = -1;
@@ -813,7 +813,7 @@ static void deviceOpen(void)
 	}
 
 	// open device
-	fd = v4l2_open(deviceName, O_RDWR /* required */ | O_NONBLOCK, 0);
+	fd = open(deviceName, O_RDWR /* required */ | O_NONBLOCK, 0);
 
 	// check if opening was successfull
 	if (-1 == fd) {
